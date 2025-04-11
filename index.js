@@ -34,19 +34,29 @@ const authenticateToken = (req, res, next) => {
 
 // Auth Routes
 app.post('/api/signup', async (req, res) => {
-  const { email, password } = req.body;
-  const hashed = await bcrypt.hash(password, 10);
-  const result = await pool.query('INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id', [email, hashed]);
-  const token = jwt.sign({ id: result.rows[0].id }, process.env.JWT_SECRET);
-  res.json({ token });
+  try {
+    const { email, password } = req.body;
+    const hashed = await bcrypt.hash(password, 10);
+    const result = await pool.query('INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id', [email, hashed]);
+    const token = jwt.sign({ id: result.rows[0].id }, process.env.JWT_SECRET);
+    res.json({ token });
+  } catch (err) {
+    console.error('Error during signup:', err);
+    res.sendStatus(500);
+  }
 });
 
 app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body;
-  const user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-  if (!user.rows.length || !(await bcrypt.compare(password, user.rows[0].password))) return res.sendStatus(403);
-  const token = jwt.sign({ id: user.rows[0].id }, process.env.JWT_SECRET);
-  res.json({ token });
+  try {
+    const { email, password } = req.body;
+    const user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (!user.rows.length || !(await bcrypt.compare(password, user.rows[0].password))) return res.sendStatus(403);
+    const token = jwt.sign({ id: user.rows[0].id }, process.env.JWT_SECRET);
+    res.json({ token });
+  } catch (err) {
+    console.error('Error during login:', err);
+    res.sendStatus(500);
+  }
 });
 
 // Upload + Transcribe Route
